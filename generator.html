@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Darwin Film Club Poster Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    font-family: 'Outfit', sans-serif;
+    color: #fff;
+    min-height: 100vh;
+  }
+
+  /* Controls */
+  .controls {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(15,15,18,0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .controls .label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.5;
+    margin-right: 8px;
+  }
+  .controls input[type="text"] {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: #fff;
+    font-size: 14px;
+    width: 100px;
+    font-family: monospace;
+  }
+  .controls button {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 6px 14px;
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+  }
+  .controls button:hover { background: rgba(255,255,255,0.1); }
+  .controls button.primary {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.15);
+    font-weight: 600;
+    padding: 6px 20px;
+  }
+  .seed-group { display: flex; align-items: center; gap: 8px; }
+  .seed-group label { font-size: 13px; opacity: 0.5; }
+
+  /* Layout */
+  .layout {
+    display: flex;
+    min-height: calc(100vh - 60px);
+  }
+
+  /* Editor */
+  .editor {
+    width: 420px;
+    min-width: 420px;
+    background: rgba(15,15,18,0.9);
+    border-right: 1px solid rgba(255,255,255,0.06);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .editor.hidden { display: none; }
+  .editor .heading {
+    font-size: 12px;
+    opacity: 0.4;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .editor textarea {
+    flex: 1;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 16px;
+    color: #ccc;
+    font-size: 13px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    line-height: 1.6;
+    resize: none;
+    outline: none;
+    min-height: 400px;
+  }
+  .error-msg {
+    color: #e74c3c;
+    font-size: 12px;
+    padding: 8px 12px;
+    background: rgba(231,76,60,0.1);
+    border-radius: 6px;
+    display: none;
+  }
+
+  /* Preview area */
+  .preview {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 20px;
+    overflow-y: auto;
+  }
+
+  /* Poster */
+  .poster {
+    width: 700px;
+    min-height: 950px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .poster .bg-base {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: #151518;
+  }
+  .poster .bg-grad {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+  .poster .streak {
+    position: absolute;
+    z-index: 1;
+  }
+  .poster .panel {
+    position: relative;
+    z-index: 2;
+    margin: 50px 45px;
+    padding: 55px 50px;
+    background: rgba(20,20,25,0.65);
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(2px);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .poster .header { margin-bottom: 50px; }
+  .poster .college {
+    font-size: 14px;
+    font-weight: 300;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    opacity: 0.55;
+    margin-bottom: 16px;
+  }
+  .poster .title {
+    font-size: 58px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .poster .subtitle {
+    font-size: 15px;
+    font-weight: 200;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+  .poster .films {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    flex: 1;
+  }
+  .poster .film {
+    display: flex;
+    align-items: baseline;
+    gap: 24px;
+  }
+  .poster .film-date {
+    font-size: 21px;
+    font-weight: 300;
+    letter-spacing: 1px;
+    opacity: 0.5;
+    white-space: nowrap;
+    min-width: 100px;
+  }
+  .poster .film-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .poster .film-name {
+    font-size: 44px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+  .poster .film-director {
+    font-size: 22px;
+    font-weight: 200;
+    opacity: 0.55;
+  }
+  .poster .sep {
+    width: 30px;
+    height: 1px;
+    background: rgba(255,255,255,0.2);
+    margin: 20px 0;
+  }
+  .poster .footer-line {
+    font-size: 20px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.5;
+    line-height: 2;
+  }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <span class="label">Poster Generator</span>
+  <div class="seed-group">
+    <label>Seed</label>
+    <input type="text" id="seedInput" value="42">
+    <button id="randomBtn">Random</button>
+  </div>
+  <button id="toggleBtn">Hide JSON</button>
+  <button class="primary" id="generateBtn">Generate</button>
+  <button id="exportBtn">Export JPEG</button>
+</div>
+
+<div class="layout">
+  <div class="editor" id="editor">
+    <div class="heading">Schedule JSON</div>
+    <textarea id="jsonInput" spellcheck="false">{
+  "header": "Darwin College \u00b7 Cambridge",
+  "title": "Film Club",
+  "subtitle": "Easter Term 2026",
+  "time": "Sundays at 7pm",
+  "venue": "1 Newnham Terrace \u00b7 All Welcome",
+  "films": [
+    { "date": "22 Mar", "name": "Dr. Strangelove", "director": "Stanley Kubrick" },
+    { "date": "29 Mar", "name": "Twilight", "director": "Catherine Hardwicke" },
+    { "date": "5 Apr", "name": "Seven Samurai", "director": "Akira Kurosawa" },
+    { "date": "12 Apr", "name": "City of God", "director": "Fernando Meirelles" }
+  ]
+}</textarea>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+
+  <div class="preview">
+    <div class="poster" id="poster">
+      <div class="bg-base"></div>
+      <div class="bg-grad" id="bgGrad"></div>
+      <div id="streaksContainer"></div>
+      <div class="panel" id="panel"></div>
+    </div>
+  </div>
+</div>
+
+<!-- html2canvas for export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+// Seeded PRNG (mulberry32)
+function mulberry32(seed) {
+  return function() {
+    let t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function hashString(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (Math.imul(31, hash) + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
+
+const palettes = [
+  { bases: [[65,50,95],[35,55,80],[50,40,65],[25,35,55]], accents: [[95,65,125],[50,80,110],[80,55,85]] },
+  { bases: [[25,70,65],[35,55,55],[18,65,80],[40,50,55]], accents: [[35,110,95],[25,85,80],[50,70,70]] },
+  { bases: [[80,40,35],[65,35,50],[55,40,40],[70,25,35]], accents: [[110,55,40],[85,40,55],[95,50,35]] },
+  { bases: [[18,35,80],[25,40,70],[35,25,65],[18,50,85]], accents: [[35,65,110],[25,55,95],[40,50,100]] },
+  { bases: [[25,55,35],[35,50,40],[18,40,50],[40,55,25]], accents: [[40,85,50],[35,70,55],[50,65,40]] },
+  { bases: [[70,35,65],[55,40,70],[65,25,55],[50,35,65]], accents: [[100,50,85],[80,40,80],[85,55,70]] },
+  { bases: [[40,50,65],[50,50,55],[35,40,55],[55,50,50]], accents: [[65,70,85],[55,65,80],[70,65,70]] },
+  { bases: [[65,55,25],[55,40,18],[50,50,35],[70,50,18]], accents: [[95,80,35],[80,65,25],[85,70,40]] },
+];
+
+function generateBackground(seedStr) {
+  const rng = mulberry32(hashString(String(seedStr)));
+  const palette = palettes[Math.floor(rng() * palettes.length)];
+
+  const gradients = [];
+  const numGrad = 4 + Math.floor(rng() * 3);
+  for (let i = 0; i < numGrad; i++) {
+    const isAccent = i >= palette.bases.length;
+    const colors = isAccent ? palette.accents : palette.bases;
+    const c = colors[Math.floor(rng() * colors.length)];
+    const opacity = isAccent ? 0.15 + rng() * 0.2 : 0.5 + rng() * 0.5;
+    const shape = rng() > 0.4 ? 'ellipse' : 'circle';
+    const sW = 40 + Math.floor(rng() * 60);
+    const sH = 30 + Math.floor(rng() * 50);
+    const pX = Math.floor(rng() * 100);
+    const pY = Math.floor(rng() * 100);
+    const spread = 30 + Math.floor(rng() * 50);
+    if (shape === 'ellipse') {
+      gradients.push(`radial-gradient(ellipse ${sW}% ${sH}% at ${pX}% ${pY}%, rgba(${c},${opacity.toFixed(2)}) 0%, transparent ${spread}%)`);
+    } else {
+      gradients.push(`radial-gradient(circle at ${pX}% ${pY}%, rgba(${c},${opacity.toFixed(2)}) 0%, transparent ${spread}%)`);
+    }
+  }
+
+  const streaks = [];
+  const numStreaks = 1 + Math.floor(rng() * 3);
+  for (let i = 0; i < numStreaks; i++) {
+    streaks.push({
+      angle: -60 + Math.floor(rng() * 120),
+      w: 150 + Math.floor(rng() * 250),
+      h: 400 + Math.floor(rng() * 500),
+      top: -200 + Math.floor(rng() * 600),
+      left: -100 + Math.floor(rng() * 800),
+      alpha: 0.008 + rng() * 0.015,
+    });
+  }
+
+  return { gradients, streaks };
+}
+
+function renderPoster(data, seed) {
+  const bg = generateBackground(seed);
+
+  // Background
+  document.getElementById('bgGrad').style.background = bg.gradients.join(', ');
+
+  // Streaks
+  const sc = document.getElementById('streaksContainer');
+  sc.innerHTML = '';
+  bg.streaks.forEach(s => {
+    const el = document.createElement('div');
+    el.className = 'streak';
+    el.style.cssText = `width:${s.w}px;height:${s.h}px;top:${s.top}px;left:${s.left}px;transform:rotate(${s.angle}deg);background:linear-gradient(135deg,transparent,rgba(255,255,255,${s.alpha}),transparent);`;
+    sc.appendChild(el);
+  });
+
+  // Panel content
+  const panel = document.getElementById('panel');
+  let html = `
+    <div class="header">
+      <div class="college">${esc(data.header || '')}</div>
+      <div class="title">${esc(data.title || '')}</div>
+      <div class="subtitle">${esc(data.subtitle || '')}</div>
+    </div>
+    <div class="films">
+  `;
+
+  (data.films || []).forEach(f => {
+    html += `
+      <div class="film">
+        <div class="film-date">${esc(f.date)}</div>
+        <div class="film-details">
+          <div class="film-name">${esc(f.name)}</div>
+          <div class="film-director">${esc(f.director)}</div>
+        </div>
+      </div>
+    `;
+  });
+
+  html += `
+    </div>
+    <div class="sep"></div>
+    <div class="footer-line">${esc(data.time || '')}</div>
+    <div class="footer-line">${esc(data.venue || '')}</div>
+  `;
+
+  panel.innerHTML = html;
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// Init
+const jsonInput = document.getElementById('jsonInput');
+const seedInput = document.getElementById('seedInput');
+const errorMsg = document.getElementById('errorMsg');
+const editor = document.getElementById('editor');
+
+function generate() {
+  try {
+    const data = JSON.parse(jsonInput.value);
+    errorMsg.style.display = 'none';
+    renderPoster(data, seedInput.value);
+  } catch (e) {
+    errorMsg.textContent = 'Invalid JSON: ' + e.message;
+    errorMsg.style.display = 'block';
+  }
+}
+
+document.getElementById('generateBtn').addEventListener('click', generate);
+
+document.getElementById('randomBtn').addEventListener('click', () => {
+  seedInput.value = Math.floor(Math.random() * 99999);
+  generate();
+});
+
+document.getElementById('toggleBtn').addEventListener('click', function() {
+  editor.classList.toggle('hidden');
+  this.textContent = editor.classList.contains('hidden') ? 'Edit JSON' : 'Hide JSON';
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const poster = document.getElementById('poster');
+  html2canvas(poster, { scale: 3, backgroundColor: '#151518', useCORS: true }).then(canvas => {
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'film-club-poster.jpg';
+      a.click();
+      URL.revokeObjectURL(url);
+    }, 'image/jpeg', 0.95);
+  });
+});
+
+// Render on load
+generate();
+</script>
+
+</body>
+</html>
