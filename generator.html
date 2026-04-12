@@ -85,32 +85,59 @@
   }
   .editor.hidden { display: none; }
   .editor .heading {
+    font-size: 11px;
+    opacity: 0.35;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    margin-top: 8px;
+  }
+  .editor .heading:first-child { margin-top: 0; }
+  .field-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .field-row label {
     font-size: 12px;
-    opacity: 0.4;
+    opacity: 0.45;
+    width: 64px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .field-row input {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 5px;
+    padding: 5px 10px;
+    color: #fff;
+    font-size: 13px;
+    font-family: 'Outfit', sans-serif;
+    outline: none;
+  }
+  .field-row input:focus {
+    border-color: rgba(255,255,255,0.22);
+    background: rgba(255,255,255,0.08);
+  }
+  .film-block {
+    border-left: 2px solid rgba(255,255,255,0.07);
+    padding-left: 10px;
+    margin-bottom: 12px;
+  }
+  .film-block:last-child { margin-bottom: 0; }
+  .film-num {
+    font-size: 11px;
+    opacity: 0.25;
     letter-spacing: 1px;
     text-transform: uppercase;
+    margin-bottom: 5px;
   }
-  .editor textarea {
-    flex: 1;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px;
-    padding: 16px;
-    color: #ccc;
-    font-size: 13px;
-    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-    line-height: 1.6;
-    resize: none;
-    outline: none;
-    min-height: 400px;
-  }
-  .error-msg {
-    color: #e74c3c;
-    font-size: 12px;
-    padding: 8px 12px;
-    background: rgba(231,76,60,0.1);
-    border-radius: 6px;
-    display: none;
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+    margin: 14px 0;
   }
 
   /* Preview area */
@@ -241,28 +268,47 @@
     <input type="text" id="seedInput" value="42">
     <button id="randomBtn">Random</button>
   </div>
-  <button id="toggleBtn">Hide JSON</button>
+  <button id="toggleBtn">Hide Form</button>
   <button class="primary" id="generateBtn">Generate</button>
   <button id="exportBtn">Export JPEG</button>
 </div>
 
 <div class="layout">
   <div class="editor" id="editor">
-    <div class="heading">Schedule JSON</div>
-    <textarea id="jsonInput" spellcheck="false">{
-  "header": "Darwin College \u00b7 Cambridge",
-  "title": "Film Club",
-  "subtitle": "Easter Term 2026",
-  "time": "Sundays at 7pm",
-  "venue": "1 Newnham Terrace \u00b7 All Welcome",
-  "films": [
-    { "date": "22 Mar", "name": "Dr. Strangelove", "director": "Stanley Kubrick" },
-    { "date": "29 Mar", "name": "Twilight", "director": "Catherine Hardwicke" },
-    { "date": "5 Apr", "name": "Seven Samurai", "director": "Akira Kurosawa" },
-    { "date": "12 Apr", "name": "City of God", "director": "Fernando Meirelles" }
-  ]
-}</textarea>
-    <div class="error-msg" id="errorMsg"></div>
+    <div class="heading">Event</div>
+    <div class="field-row"><label>Header</label><input id="f-header" type="text" value="Darwin College · Cambridge"></div>
+    <div class="field-row"><label>Title</label><input id="f-title" type="text" value="Film Club"></div>
+    <div class="field-row"><label>Subtitle</label><input id="f-subtitle" type="text" value="Easter Term 2026"></div>
+    <div class="field-row"><label>Time</label><input id="f-time" type="text" value="Sundays at 7pm"></div>
+    <div class="field-row"><label>Venue</label><input id="f-venue" type="text" value="1 Newnham Terrace · All Welcome"></div>
+
+    <div class="divider"></div>
+    <div class="heading">Films</div>
+
+    <div class="film-block">
+      <div class="film-num">Film 1</div>
+      <div class="field-row"><label>Date</label><input id="f-date-0" type="text" value="22 Mar"></div>
+      <div class="field-row"><label>Film</label><input id="f-name-0" type="text" value="Dr. Strangelove"></div>
+      <div class="field-row"><label>Director</label><input id="f-dir-0" type="text" value="Stanley Kubrick"></div>
+    </div>
+    <div class="film-block">
+      <div class="film-num">Film 2</div>
+      <div class="field-row"><label>Date</label><input id="f-date-1" type="text" value="29 Mar"></div>
+      <div class="field-row"><label>Film</label><input id="f-name-1" type="text" value="Twilight"></div>
+      <div class="field-row"><label>Director</label><input id="f-dir-1" type="text" value="Catherine Hardwicke"></div>
+    </div>
+    <div class="film-block">
+      <div class="film-num">Film 3</div>
+      <div class="field-row"><label>Date</label><input id="f-date-2" type="text" value="5 Apr"></div>
+      <div class="field-row"><label>Film</label><input id="f-name-2" type="text" value="Seven Samurai"></div>
+      <div class="field-row"><label>Director</label><input id="f-dir-2" type="text" value="Akira Kurosawa"></div>
+    </div>
+    <div class="film-block">
+      <div class="film-num">Film 4</div>
+      <div class="field-row"><label>Date</label><input id="f-date-3" type="text" value="12 Apr"></div>
+      <div class="field-row"><label>Film</label><input id="f-name-3" type="text" value="City of God"></div>
+      <div class="field-row"><label>Director</label><input id="f-dir-3" type="text" value="Fernando Meirelles"></div>
+    </div>
   </div>
 
   <div class="preview">
@@ -412,21 +458,45 @@ function esc(s) {
 }
 
 // Init
-const jsonInput = document.getElementById('jsonInput');
 const seedInput = document.getElementById('seedInput');
-const errorMsg = document.getElementById('errorMsg');
 const editor = document.getElementById('editor');
 
-function generate() {
-  try {
-    const data = JSON.parse(jsonInput.value);
-    errorMsg.style.display = 'none';
-    renderPoster(data, seedInput.value);
-  } catch (e) {
-    errorMsg.textContent = 'Invalid JSON: ' + e.message;
-    errorMsg.style.display = 'block';
-  }
+function getFormData() {
+  return {
+    header:   document.getElementById('f-header').value,
+    title:    document.getElementById('f-title').value,
+    subtitle: document.getElementById('f-subtitle').value,
+    time:     document.getElementById('f-time').value,
+    venue:    document.getElementById('f-venue').value,
+    films: [0,1,2,3].map(i => ({
+      date:     document.getElementById(`f-date-${i}`).value,
+      name:     document.getElementById(`f-name-${i}`).value,
+      director: document.getElementById(`f-dir-${i}`).value,
+    })),
+  };
 }
+
+function generate() {
+  renderPoster(getFormData(), seedInput.value);
+}
+
+// Auto-fill dates 2–4 when date 1 changes
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+document.getElementById('f-date-0').addEventListener('input', function() {
+  const parts = this.value.trim().split(/\s+/);
+  if (parts.length < 2) return;
+  const day = parseInt(parts[0]);
+  const monthIdx = MONTHS.findIndex(m => m.toLowerCase() === parts[1].toLowerCase().slice(0, 3));
+  if (isNaN(day) || monthIdx === -1) return;
+  const base = new Date(new Date().getFullYear(), monthIdx, day);
+  for (let i = 1; i <= 3; i++) {
+    const d = new Date(base.getTime() + i * 7 * 86400000);
+    document.getElementById(`f-date-${i}`).value = `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  }
+});
+
+// Live update as you type
+editor.addEventListener('input', generate);
 
 document.getElementById('generateBtn').addEventListener('click', generate);
 
@@ -437,7 +507,7 @@ document.getElementById('randomBtn').addEventListener('click', () => {
 
 document.getElementById('toggleBtn').addEventListener('click', function() {
   editor.classList.toggle('hidden');
-  this.textContent = editor.classList.contains('hidden') ? 'Edit JSON' : 'Hide JSON';
+  this.textContent = editor.classList.contains('hidden') ? 'Show Form' : 'Hide Form';
 });
 
 document.getElementById('exportBtn').addEventListener('click', () => {
