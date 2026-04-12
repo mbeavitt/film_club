@@ -152,7 +152,7 @@
     z-index: 2;
     margin: 50px 45px;
     padding: 55px 50px;
-    background: rgba(20,20,25,0.65);
+    background: rgba(10,10,15,0.45);
     border: 1px solid rgba(255,255,255,0.06);
     backdrop-filter: blur(2px);
     flex: 1;
@@ -298,14 +298,22 @@ function hashString(str) {
 }
 
 const palettes = [
-  { bases: [[65,50,95],[35,55,80],[50,40,65],[25,35,55]], accents: [[95,65,125],[50,80,110],[80,55,85]] },
-  { bases: [[25,70,65],[35,55,55],[18,65,80],[40,50,55]], accents: [[35,110,95],[25,85,80],[50,70,70]] },
-  { bases: [[80,40,35],[65,35,50],[55,40,40],[70,25,35]], accents: [[110,55,40],[85,40,55],[95,50,35]] },
-  { bases: [[18,35,80],[25,40,70],[35,25,65],[18,50,85]], accents: [[35,65,110],[25,55,95],[40,50,100]] },
-  { bases: [[25,55,35],[35,50,40],[18,40,50],[40,55,25]], accents: [[40,85,50],[35,70,55],[50,65,40]] },
-  { bases: [[70,35,65],[55,40,70],[65,25,55],[50,35,65]], accents: [[100,50,85],[80,40,80],[85,55,70]] },
-  { bases: [[40,50,65],[50,50,55],[35,40,55],[55,50,50]], accents: [[65,70,85],[55,65,80],[70,65,70]] },
-  { bases: [[65,55,25],[55,40,18],[50,50,35],[70,50,18]], accents: [[95,80,35],[80,65,25],[85,70,40]] },
+  // Electric indigo / cyan
+  { bases: [[30,15,110],[15,25,140],[50,10,90],[20,40,120]], accents: [[80,180,255],[160,80,255],[40,220,200]] },
+  // Teal / emerald
+  { bases: [[10,90,80],[15,110,90],[20,70,100],[10,80,120]], accents: [[30,240,190],[20,255,160],[60,210,230]] },
+  // Crimson / hot orange
+  { bases: [[120,15,30],[100,25,15],[140,40,20],[90,10,50]], accents: [[255,70,50],[230,130,30],[255,40,110]] },
+  // Cobalt / violet
+  { bases: [[10,20,130],[20,30,150],[30,10,100],[15,50,140]], accents: [[70,130,255],[140,70,255],[50,170,255]] },
+  // Magenta / electric pink
+  { bases: [[100,10,100],[120,20,70],[70,10,130],[90,5,110]], accents: [[255,70,230],[210,50,255],[255,100,190]] },
+  // Amber / gold
+  { bases: [[130,70,10],[110,55,20],[150,80,10],[100,65,5]], accents: [[255,210,30],[230,170,50],[255,190,20]] },
+  // Arctic blue / ice
+  { bases: [[15,50,110],[25,65,130],[10,35,90],[30,70,120]], accents: [[90,210,255],[150,235,255],[70,190,255]] },
+  // Lime / neon green
+  { bases: [[20,90,20],[30,110,25],[15,75,35],[40,100,15]], accents: [[130,255,60],[180,240,50],[100,255,140]] },
 ];
 
 function generateBackground(seedStr) {
@@ -318,7 +326,7 @@ function generateBackground(seedStr) {
     const isAccent = i >= palette.bases.length;
     const colors = isAccent ? palette.accents : palette.bases;
     const c = colors[Math.floor(rng() * colors.length)];
-    const opacity = isAccent ? 0.15 + rng() * 0.2 : 0.5 + rng() * 0.5;
+    const opacity = isAccent ? 0.5 + rng() * 0.35 : 0.6 + rng() * 0.4;
     const shape = rng() > 0.4 ? 'ellipse' : 'circle';
     const sW = 40 + Math.floor(rng() * 60);
     const sH = 30 + Math.floor(rng() * 50);
@@ -341,7 +349,7 @@ function generateBackground(seedStr) {
       h: 400 + Math.floor(rng() * 500),
       top: -200 + Math.floor(rng() * 600),
       left: -100 + Math.floor(rng() * 800),
-      alpha: 0.008 + rng() * 0.015,
+      alpha: 0.05 + rng() * 0.1,
     });
   }
 
