@@ -177,8 +177,23 @@
     padding: 40px 20px;
     overflow-y: auto;
   }
+  .preview-img {
+    display: block;
+    box-shadow: 0 8px 48px rgba(0,0,0,0.6);
+    max-width: 100%;
+  }
+  .preview-img.loading {
+    opacity: 0.5;
+  }
 
-  /* Poster */
+  /* Poster — rendered off-screen, captured by html2canvas */
+  .poster-offscreen {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    width: 700px;
+    pointer-events: none;
+  }
   .poster {
     width: 700px;
     min-height: 950px;
@@ -362,12 +377,17 @@
   </div>
 
   <div class="preview">
-    <div class="poster" id="poster">
-      <div class="bg-base"></div>
-      <div class="bg-grad" id="bgGrad"></div>
-      <div id="streaksContainer"></div>
-      <div class="panel" id="panel"></div>
-    </div>
+    <img id="previewImg" class="preview-img loading" alt="Poster preview">
+  </div>
+</div>
+
+<!-- Poster rendered off-screen; captured by html2canvas for the live preview -->
+<div class="poster-offscreen">
+  <div class="poster" id="poster">
+    <div class="bg-base"></div>
+    <div class="bg-grad" id="bgGrad"></div>
+    <div id="streaksContainer"></div>
+    <div class="panel" id="panel"></div>
   </div>
 </div>
 
@@ -536,8 +556,23 @@ function getBgConfig() {
   };
 }
 
+let renderTimer = null;
+
+function capturePreview() {
+  const poster = document.getElementById('poster');
+  const img = document.getElementById('previewImg');
+  img.classList.add('loading');
+  html2canvas(poster, { scale: 1, backgroundColor: '#151518', useCORS: true, logging: false })
+    .then(canvas => {
+      img.src = canvas.toDataURL('image/jpeg', 0.92);
+      img.classList.remove('loading');
+    });
+}
+
 function generate() {
   renderPoster(getFormData(), seedInput.value, getBgConfig());
+  if (renderTimer) clearTimeout(renderTimer);
+  renderTimer = setTimeout(capturePreview, 250);
 }
 
 // Auto-fill dates 2–4 when date 1 changes
@@ -572,7 +607,7 @@ document.getElementById('toggleBtn').addEventListener('click', function() {
 
 document.getElementById('exportBtn').addEventListener('click', () => {
   const poster = document.getElementById('poster');
-  html2canvas(poster, { scale: 3, backgroundColor: '#151518', useCORS: true }).then(canvas => {
+  html2canvas(poster, { scale: 3, backgroundColor: '#151518', useCORS: true, logging: false }).then(canvas => {
     canvas.toBlob(blob => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
