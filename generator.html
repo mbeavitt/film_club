@@ -65,6 +65,34 @@
   }
   .seed-group { display: flex; align-items: center; gap: 8px; }
   .seed-group label { font-size: 13px; opacity: 0.5; }
+  .ctrl-divider {
+    width: 1px;
+    height: 20px;
+    background: rgba(255,255,255,0.1);
+    margin: 0 4px;
+  }
+  .ctrl-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ctrl-group label {
+    font-size: 12px;
+    opacity: 0.45;
+    white-space: nowrap;
+  }
+  .ctrl-group input[type="range"] {
+    width: 72px;
+    accent-color: rgba(255,255,255,0.6);
+    cursor: pointer;
+  }
+  .ctrl-group span {
+    font-size: 11px;
+    opacity: 0.38;
+    min-width: 28px;
+    font-family: monospace;
+    text-align: right;
+  }
 
   /* Layout */
   .layout {
@@ -272,6 +300,27 @@
   <button id="toggleBtn">Hide Form</button>
   <button class="primary" id="generateBtn">Generate</button>
   <button id="exportBtn">Export JPEG</button>
+  <div class="ctrl-divider"></div>
+  <div class="ctrl-group">
+    <label>Count</label>
+    <input type="range" id="ctrl-count" min="2" max="14" value="6" step="1">
+    <span id="ctrl-count-val">6</span>
+  </div>
+  <div class="ctrl-group">
+    <label>Size</label>
+    <input type="range" id="ctrl-size" min="20" max="220" value="100" step="5">
+    <span id="ctrl-size-val">100%</span>
+  </div>
+  <div class="ctrl-group">
+    <label>Spread</label>
+    <input type="range" id="ctrl-spread" min="5" max="100" value="50" step="5">
+    <span id="ctrl-spread-val">50%</span>
+  </div>
+  <div class="ctrl-group">
+    <label>Opacity</label>
+    <input type="range" id="ctrl-opacity" min="10" max="100" value="100" step="5">
+    <span id="ctrl-opacity-val">100%</span>
+  </div>
 </div>
 
 <div class="layout">
@@ -363,23 +412,24 @@ const palettes = [
   { bases: [[20,90,20],[30,110,25],[15,75,35],[40,100,15]], accents: [[130,255,60],[180,240,50],[100,255,140]] },
 ];
 
-function generateBackground(seedStr) {
+function generateBackground(seedStr, cfg) {
   const rng = mulberry32(hashString(String(seedStr)));
   const palette = palettes[Math.floor(rng() * palettes.length)];
 
   const gradients = [];
-  const numGrad = 4 + Math.floor(rng() * 3);
+  const numGrad = cfg.count;
   for (let i = 0; i < numGrad; i++) {
     const isAccent = i >= palette.bases.length;
     const colors = isAccent ? palette.accents : palette.bases;
     const c = colors[Math.floor(rng() * colors.length)];
-    const opacity = isAccent ? 0.5 + rng() * 0.35 : 0.6 + rng() * 0.4;
+    const baseOpacity = isAccent ? 0.5 + rng() * 0.35 : 0.6 + rng() * 0.4;
+    const opacity = Math.min(1, baseOpacity * cfg.opacity);
     const shape = rng() > 0.4 ? 'ellipse' : 'circle';
-    const sW = 40 + Math.floor(rng() * 60);
-    const sH = 30 + Math.floor(rng() * 50);
+    const sW = Math.floor((40 + rng() * 60) * cfg.size);
+    const sH = Math.floor((30 + rng() * 50) * cfg.size);
     const pX = Math.floor(rng() * 100);
     const pY = Math.floor(rng() * 100);
-    const spread = 30 + Math.floor(rng() * 50);
+    const spread = cfg.spread;
     if (shape === 'ellipse') {
       gradients.push(`radial-gradient(ellipse ${sW}% ${sH}% at ${pX}% ${pY}%, rgba(${c},${opacity.toFixed(2)}) 0%, transparent ${spread}%)`);
     } else {
@@ -403,8 +453,8 @@ function generateBackground(seedStr) {
   return { gradients, streaks };
 }
 
-function renderPoster(data, seed) {
-  const bg = generateBackground(seed);
+function renderPoster(data, seed, cfg) {
+  const bg = generateBackground(seed, cfg);
 
   // Background
   document.getElementById('bgGrad').style.background = bg.gradients.join(', ');
@@ -477,8 +527,17 @@ function getFormData() {
   };
 }
 
+function getBgConfig() {
+  return {
+    count:   parseInt(document.getElementById('ctrl-count').value),
+    size:    document.getElementById('ctrl-size').value / 100,
+    spread:  parseInt(document.getElementById('ctrl-spread').value),
+    opacity: document.getElementById('ctrl-opacity').value / 100,
+  };
+}
+
 function generate() {
-  renderPoster(getFormData(), seedInput.value);
+  renderPoster(getFormData(), seedInput.value, getBgConfig());
 }
 
 // Auto-fill dates 2–4 when date 1 changes
@@ -522,6 +581,16 @@ document.getElementById('exportBtn').addEventListener('click', () => {
       a.click();
       URL.revokeObjectURL(url);
     }, 'image/jpeg', 0.95);
+  });
+});
+
+// Blob control sliders
+['count', 'size', 'spread', 'opacity'].forEach(key => {
+  const input = document.getElementById(`ctrl-${key}`);
+  const valEl = document.getElementById(`ctrl-${key}-val`);
+  input.addEventListener('input', () => {
+    valEl.textContent = key === 'count' ? input.value : input.value + '%';
+    generate();
   });
 });
 
