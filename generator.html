@@ -400,6 +400,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <!-- jsPDF for print layout -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- piexifjs for EXIF embedding -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/piexifjs/1.0.6/piexif.min.js"></script>
 
 <script>
 // Seeded PRNG (mulberry32)
@@ -690,17 +692,22 @@ document.getElementById('printBtn').addEventListener('click', () => {
     });
 });
 
+function embedSeedExif(dataUrl) {
+  const exifObj = {
+    '0th': { [piexif.ImageIFD.Software]: 'film-club generator' },
+    Exif: { [piexif.ExifIFD.UserComment]: `seed=${seedInput.value}` }
+  };
+  return piexif.insert(piexif.dump(exifObj), dataUrl);
+}
+
 document.getElementById('exportBtn').addEventListener('click', () => {
   const poster = document.getElementById('poster');
   html2canvas(poster, { scale: 3, backgroundColor: '#151518', useCORS: true, logging: false }).then(canvas => {
-    canvas.toBlob(blob => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'film-club-poster.jpg';
-      a.click();
-      URL.revokeObjectURL(url);
-    }, 'image/jpeg', 0.95);
+    const dataUrl = embedSeedExif(canvas.toDataURL('image/jpeg', 0.95));
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = 'schedule.jpeg';
+    a.click();
   });
 });
 
