@@ -196,7 +196,7 @@
   }
   .poster {
     width: 700px;
-    min-height: 950px;
+    min-height: 990px;
     position: relative;
     overflow: hidden;
     display: flex;
@@ -235,7 +235,7 @@
     font-weight: 300;
     letter-spacing: 5px;
     text-transform: uppercase;
-    opacity: 0.55;
+    opacity: 0.75;
     margin-bottom: 16px;
   }
   .poster .title {
@@ -250,7 +250,7 @@
     font-weight: 200;
     letter-spacing: 3px;
     text-transform: uppercase;
-    opacity: 0.6;
+    opacity: 0.75;
   }
   .poster .films {
     display: flex;
@@ -267,7 +267,7 @@
     font-size: 21px;
     font-weight: 300;
     letter-spacing: 1px;
-    opacity: 0.5;
+    opacity: 0.7;
     white-space: nowrap;
     min-width: 100px;
   }
@@ -285,7 +285,7 @@
   .poster .film-director {
     font-size: 22px;
     font-weight: 200;
-    opacity: 0.55;
+    opacity: 0.75;
   }
   .poster .sep {
     width: 30px;
@@ -298,7 +298,7 @@
     font-weight: 300;
     letter-spacing: 2px;
     text-transform: uppercase;
-    opacity: 0.5;
+    opacity: 0.7;
     line-height: 2;
   }
 </style>
@@ -315,6 +315,11 @@
   <button id="toggleBtn">Hide Form</button>
   <button class="primary" id="generateBtn">Generate</button>
   <button id="exportBtn">Export JPEG</button>
+  <button id="printBtn">Print PDF</button>
+  <div class="ctrl-divider"></div>
+  <button id="saveJsonBtn">Save JSON</button>
+  <button id="loadJsonBtn">Load JSON</button>
+  <input type="file" id="loadJsonInput" accept=".json" style="display:none">
   <div class="ctrl-divider"></div>
   <div class="ctrl-group">
     <label>Count</label>
@@ -393,6 +398,8 @@
 
 <!-- html2canvas for export -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<!-- jsPDF for print layout -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
 // Seeded PRNG (mulberry32)
@@ -569,8 +576,59 @@ function capturePreview() {
     });
 }
 
+const STATE_KEY = 'filmClubPoster';
+
+function getFullState() {
+  return {
+    form: getFormData(),
+    seed: seedInput.value,
+    sliders: {
+      count:   document.getElementById('ctrl-count').value,
+      size:    document.getElementById('ctrl-size').value,
+      spread:  document.getElementById('ctrl-spread').value,
+      opacity: document.getElementById('ctrl-opacity').value,
+    }
+  };
+}
+
+function applyState(state) {
+  if (!state) return;
+  if (state.seed != null) seedInput.value = state.seed;
+
+  const f = state.form || {};
+  const fieldMap = { header: 'f-header', title: 'f-title', subtitle: 'f-subtitle', time: 'f-time', venue: 'f-venue' };
+  for (const [key, id] of Object.entries(fieldMap)) {
+    if (f[key] != null) document.getElementById(id).value = f[key];
+  }
+  (f.films || []).forEach((film, i) => {
+    if (film.date != null)     document.getElementById(`f-date-${i}`).value = film.date;
+    if (film.name != null)     document.getElementById(`f-name-${i}`).value = film.name;
+    if (film.director != null) document.getElementById(`f-dir-${i}`).value = film.director;
+  });
+
+  const s = state.sliders || {};
+  ['count', 'size', 'spread', 'opacity'].forEach(key => {
+    if (s[key] == null) return;
+    const input = document.getElementById(`ctrl-${key}`);
+    const valEl = document.getElementById(`ctrl-${key}-val`);
+    input.value = s[key];
+    valEl.textContent = key === 'count' ? s[key] : s[key] + '%';
+  });
+}
+
+function saveState() {
+  localStorage.setItem(STATE_KEY, JSON.stringify(getFullState()));
+}
+
+function loadState() {
+  let state;
+  try { state = JSON.parse(localStorage.getItem(STATE_KEY)); } catch(e) {}
+  applyState(state);
+}
+
 function generate() {
   renderPoster(getFormData(), seedInput.value, getBgConfig());
+  saveState();
   if (renderTimer) clearTimeout(renderTimer);
   renderTimer = setTimeout(capturePreview, 250);
 }
@@ -605,6 +663,33 @@ document.getElementById('toggleBtn').addEventListener('click', function() {
   this.textContent = editor.classList.contains('hidden') ? 'Show Form' : 'Hide Form';
 });
 
+document.getElementById('printBtn').addEventListener('click', () => {
+  const poster = document.getElementById('poster');
+  const btn = document.getElementById('printBtn');
+  btn.textContent = 'Rendering…';
+  btn.disabled = true;
+  // Scale to match A5 at ~200dpi: A5 is 148×210mm; poster DOM is 700×950px
+  html2canvas(poster, { scale: 2.5, backgroundColor: '#151518', useCORS: true, logging: false })
+    .then(canvas => {
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const { jsPDF } = window.jspdf;
+      // A4 landscape = 297×210mm; two A5 (148.5×210mm each) fill it exactly
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const halfW = 297 / 2; // 148.5mm
+      pdf.addImage(imgData, 'JPEG', 0,      0, halfW, 210);
+      pdf.addImage(imgData, 'JPEG', halfW,  0, halfW, 210);
+      // Thin cut guide between the two posters
+      pdf.setDrawColor(180, 180, 180);
+      pdf.setLineWidth(0.15);
+      pdf.line(halfW, 0, halfW, 210);
+      pdf.save('film-club-poster.pdf');
+    })
+    .finally(() => {
+      btn.textContent = 'Print PDF';
+      btn.disabled = false;
+    });
+});
+
 document.getElementById('exportBtn').addEventListener('click', () => {
   const poster = document.getElementById('poster');
   html2canvas(poster, { scale: 3, backgroundColor: '#151518', useCORS: true, logging: false }).then(canvas => {
@@ -619,6 +704,38 @@ document.getElementById('exportBtn').addEventListener('click', () => {
   });
 });
 
+document.getElementById('saveJsonBtn').addEventListener('click', () => {
+  const state = getFullState();
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const slug = (state.form.subtitle || 'poster').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  a.download = `film-club-${slug}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('loadJsonBtn').addEventListener('click', () => {
+  document.getElementById('loadJsonInput').click();
+});
+
+document.getElementById('loadJsonInput').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      applyState(JSON.parse(e.target.result));
+      generate();
+    } catch(err) {
+      alert('Could not load file — make sure it\'s a valid poster JSON.');
+    }
+    this.value = '';
+  };
+  reader.readAsText(file);
+});
+
 // Blob control sliders
 ['count', 'size', 'spread', 'opacity'].forEach(key => {
   const input = document.getElementById(`ctrl-${key}`);
@@ -629,7 +746,8 @@ document.getElementById('exportBtn').addEventListener('click', () => {
   });
 });
 
-// Render on load
+// Restore saved state then render
+loadState();
 generate();
 </script>
 
