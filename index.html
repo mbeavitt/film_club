@@ -623,10 +623,44 @@ function saveState() {
   localStorage.setItem(STATE_KEY, JSON.stringify(getFullState()));
 }
 
+// --- Smart defaults for a fresh browser (no saved poster yet) ---
+
+// Cambridge term (or Summer) a date falls in. Month-based so it never needs
+// updating: Jan–Mar = Lent, Apr–Jun = Easter, Jul–Sep = Summer (Long Vac),
+// Oct–Dec = Michaelmas. Just a reasonable starting point — the user can edit.
+function cambridgeTerm(date) {
+  const m = date.getMonth();
+  let label;
+  if (m <= 2)      label = 'Lent Term';
+  else if (m <= 5) label = 'Easter Term';
+  else if (m <= 8) label = 'Summer';
+  else             label = 'Michaelmas Term';
+  return `${label} ${date.getFullYear()}`;
+}
+
+// Next Sunday on or after today (today itself if it's already Sunday).
+function nextSunday(from = new Date()) {
+  const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  d.setDate(d.getDate() + ((7 - d.getDay()) % 7));
+  return d;
+}
+
+function fmtDate(d) { return `${d.getDate()} ${MONTHS[d.getMonth()]}`; }
+
+function applyDefaults() {
+  const sunday = nextSunday();
+  document.getElementById('f-subtitle').value = cambridgeTerm(sunday);
+  const dateField = document.getElementById('f-date-0');
+  dateField.value = fmtDate(sunday);
+  // Reuse the "first date changed" cascade to fill films 2–4 a week apart.
+  dateField.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
 function loadState() {
-  let state;
+  let state = null;
   try { state = JSON.parse(localStorage.getItem(STATE_KEY)); } catch(e) {}
-  applyState(state);
+  if (state) applyState(state);
+  else applyDefaults();
 }
 
 function generate() {
