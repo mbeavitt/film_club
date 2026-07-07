@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Darwin Film Club Poster Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    font-family: 'Outfit', sans-serif;
+    color: #fff;
+    min-height: 100vh;
+  }
+
+  /* Controls */
+  .controls {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(15,15,18,0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .controls .label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.5;
+    margin-right: 8px;
+  }
+  .controls input[type="text"] {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: #fff;
+    font-size: 14px;
+    width: 100px;
+    font-family: monospace;
+  }
+  .controls button {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 6px 14px;
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+  }
+  .controls button:hover { background: rgba(255,255,255,0.1); }
+  .controls button.primary {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.15);
+    font-weight: 600;
+    padding: 6px 20px;
+  }
+  .seed-group { display: flex; align-items: center; gap: 8px; }
+  .seed-group label { font-size: 13px; opacity: 0.5; }
+  .ctrl-divider {
+    width: 1px;
+    height: 20px;
+    background: rgba(255,255,255,0.1);
+    margin: 0 4px;
+  }
+  .ctrl-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ctrl-group label {
+    font-size: 12px;
+    opacity: 0.45;
+    white-space: nowrap;
+  }
+  .ctrl-group input[type="range"] {
+    width: 72px;
+    accent-color: rgba(255,255,255,0.6);
+    cursor: pointer;
+  }
+  .ctrl-group span {
+    font-size: 11px;
+    opacity: 0.38;
+    min-width: 28px;
+    font-family: monospace;
+    text-align: right;
+  }
+
+  /* Layout */
+  .layout {
+    display: flex;
+    min-height: calc(100vh - 60px);
+  }
+
+  /* Editor */
+  .editor {
+    width: 420px;
+    min-width: 420px;
+    background: rgba(15,15,18,0.9);
+    border-right: 1px solid rgba(255,255,255,0.06);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .editor.hidden { display: none; }
+  .editor .heading {
+    font-size: 11px;
+    opacity: 0.35;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    margin-top: 8px;
+  }
+  .editor .heading:first-child { margin-top: 0; }
+  .field-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .field-row label {
+    font-size: 12px;
+    opacity: 0.45;
+    width: 64px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .field-row input {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 5px;
+    padding: 5px 10px;
+    color: #fff;
+    font-size: 13px;
+    font-family: 'Outfit', sans-serif;
+    outline: none;
+  }
+  .field-row input:focus {
+    border-color: rgba(255,255,255,0.22);
+    background: rgba(255,255,255,0.08);
+  }
+  .film-block {
+    border-left: 2px solid rgba(255,255,255,0.07);
+    padding-left: 10px;
+    margin-bottom: 12px;
+  }
+  .film-block:last-child { margin-bottom: 0; }
+  .film-num {
+    font-size: 11px;
+    opacity: 0.25;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+    margin: 14px 0;
+  }
+
+  /* Preview area */
+  .preview {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 20px;
+    overflow-y: auto;
+  }
+  .preview-img {
+    display: block;
+    box-shadow: 0 8px 48px rgba(0,0,0,0.6);
+    max-width: 100%;
+  }
+  .preview-img.loading {
+    opacity: 0.5;
+  }
+
+  /* Poster — rendered off-screen, captured by html2canvas */
+  .poster-offscreen {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    width: 700px;
+    pointer-events: none;
+  }
+  .poster {
+    width: 700px;
+    min-height: 990px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .poster .bg-base {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: #151518;
+  }
+  .poster .bg-grad {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+  .poster .streak {
+    position: absolute;
+    z-index: 1;
+  }
+  .poster .panel {
+    position: relative;
+    z-index: 2;
+    margin: 50px 45px;
+    padding: 55px 50px;
+    background: rgba(10,10,15,0.45);
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(2px);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .poster .header { margin-bottom: 50px; }
+  .poster .college {
+    font-size: 14px;
+    font-weight: 300;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    opacity: 0.75;
+    margin-bottom: 16px;
+  }
+  .poster .title {
+    font-size: 58px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .poster .subtitle {
+    font-size: 15px;
+    font-weight: 200;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
+  .poster .films {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    flex: 1;
+  }
+  .poster .film {
+    display: flex;
+    align-items: baseline;
+    gap: 24px;
+  }
+  .poster .film-date {
+    font-size: 21px;
+    font-weight: 300;
+    letter-spacing: 1px;
+    opacity: 0.7;
+    white-space: nowrap;
+    min-width: 100px;
+  }
+  .poster .film-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .poster .film-name {
+    font-size: 44px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    line-height: 0.92;
+  }
+  .poster .film-director {
+    font-size: 22px;
+    font-weight: 200;
+    opacity: 0.75;
+  }
+  .poster .sep {
+    width: 30px;
+    height: 1px;
+    background: rgba(255,255,255,0.2);
+    margin: 20px 0;
+  }
+  .poster .footer-line {
+    font-size: 20px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.7;
+    line-height: 2;
+  }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <span class="label">Poster Generator</span>
+  <div class="seed-group">
+    <label>Seed</label>
+    <input type="text" id="seedInput" value="42">
+    <button id="randomBtn">Random</button>
+  </div>
+  <button id="toggleBtn">Hide Form</button>
+  <button class="primary" id="generateBtn">Generate</button>
+  <button id="exportBtn">Export JPEG</button>
+  <button id="printBtn">Print PDF</button>
+  <div class="ctrl-divider"></div>
+  <button id="saveJsonBtn">Save JSON</button>
+  <button id="loadJsonBtn">Load JSON</button>
+  <input type="file" id="loadJsonInput" accept=".json" style="display:none">
+  <div class="ctrl-divider"></div>
+  <div class="ctrl-group">
+    <label>Count</label>
+    <input type="range" id="ctrl-count" min="2" max="14" value="6" step="1">
+    <span id="ctrl-count-val">6</span>
+  </div>
+  <div class="ctrl-group">
+    <label>Size</label>
+    <input type="range" id="ctrl-size" min="20" max="220" value="100" step="5">
+    <span id="ctrl-size-val">100%</span>
+  </div>
+  <div class="ctrl-group">
+    <label>Spread</label>
+    <input type="range" id="ctrl-spread" min="5" max="100" value="50" step="5">
+    <span id="ctrl-spread-val">50%</span>
+  </div>
+  <div class="ctrl-group">
+    <label>Opacity</label>
+    <input type="range" id="ctrl-opacity" min="10" max="100" value="100" step="5">
+    <span id="ctrl-opacity-val">100%</span>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="editor" id="editor">
+    <div class="heading">Event</div>
+    <div class="field-row"><label>Header</label><input id="f-header" type="text" value="Darwin College · Cambridge"></div>
+    <div class="field-row"><label>Title</label><input id="f-title" type="text" value="Film Club"></div>
+    <div class="field-row"><label>Subtitle</label><input id="f-subtitle" type="text" value="Easter Term 2026"></div>
+    <div class="field-row"><label>Time</label><input id="f-time" type="text" value="Sundays at 7pm"></div>
+    <div class="field-row"><label>Venue</label><input id="f-venue" type="text" value="1 Newnham Terrace · All Welcome"></div>
+
+    <div class="divider"></div>
+    <div class="heading">Films</div>
+
+    <div class="film-block">
+      <div class="film-num">Film 1</div>
+      <div class="field-row"><label>Date</label><input id="f-date-0" type="text" value="22 Mar"></div>
+      <div class="field-row"><label>Film</label><input id="f-name-0" type="text" value="Dr. Strangelove"></div>
+      <div class="field-row"><label>Director</label><input id="f-dir-0" type="text" value="Stanley Kubrick"></div>
+    </div>
+    <div class="film-block">
+      <div class="film-num">Film 2</div>
+      <div class="field-row"><label>Date</label><input id="f-date-1" type="text" value="29 Mar"></div>
+      <div class="field-row"><label>Film</label><input id="f-name-1" type="text" value="Twilight"></div>
+      <div class="field-row"><label>Director</label><input id="f-dir-1" type="text" value="Catherine Hardwicke"></div>
+    </div>
+    <div class="film-block">
+      <div class="film-num">Film 3</div>
+      <div class="field-row"><label>Date</label><input id="f-date-2" type="text" value="5 Apr"></div>
+      <div class="field-row"><label>Film</label><input id="f-name-2" type="text" value="Seven Samurai"></div>
+      <div class="field-row"><label>Director</label><input id="f-dir-2" type="text" value="Akira Kurosawa"></div>
+    </div>
+    <div class="film-block">
+      <div class="film-num">Film 4</div>
+      <div class="field-row"><label>Date</label><input id="f-date-3" type="text" value="12 Apr"></div>
+      <div class="field-row"><label>Film</label><input id="f-name-3" type="text" value="City of God"></div>
+      <div class="field-row"><label>Director</label><input id="f-dir-3" type="text" value="Fernando Meirelles"></div>
+    </div>
+  </div>
+
+  <div class="preview">
+    <img id="previewImg" class="preview-img loading" alt="Poster preview">
+  </div>
+</div>
+
+<!-- Poster rendered off-screen; captured by html2canvas for the live preview -->
+<div class="poster-offscreen">
+  <div class="poster" id="poster">
+    <div class="bg-base"></div>
+    <div class="bg-grad" id="bgGrad"></div>
+    <div id="streaksContainer"></div>
+    <div class="panel" id="panel"></div>
+  </div>
+</div>
+
+<!-- html2canvas for export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<!-- jsPDF for print layout -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- piexifjs for EXIF embedding -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/piexifjs/1.0.6/piexif.min.js"></script>
+
+<script>
+// Seeded PRNG (mulberry32)
+function mulberry32(seed) {
+  return function() {
+    let t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function hashString(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (Math.imul(31, hash) + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
+
+const palettes = [
+  // Electric indigo / cyan
+  { bases: [[30,15,110],[15,25,140],[50,10,90],[20,40,120]], accents: [[80,180,255],[160,80,255],[40,220,200]] },
+  // Teal / emerald
+  { bases: [[10,90,80],[15,110,90],[20,70,100],[10,80,120]], accents: [[30,240,190],[20,255,160],[60,210,230]] },
+  // Crimson / hot orange
+  { bases: [[120,15,30],[100,25,15],[140,40,20],[90,10,50]], accents: [[255,70,50],[230,130,30],[255,40,110]] },
+  // Cobalt / violet
+  { bases: [[10,20,130],[20,30,150],[30,10,100],[15,50,140]], accents: [[70,130,255],[140,70,255],[50,170,255]] },
+  // Magenta / electric pink
+  { bases: [[100,10,100],[120,20,70],[70,10,130],[90,5,110]], accents: [[255,70,230],[210,50,255],[255,100,190]] },
+  // Amber / gold
+  { bases: [[130,70,10],[110,55,20],[150,80,10],[100,65,5]], accents: [[255,210,30],[230,170,50],[255,190,20]] },
+  // Arctic blue / ice
+  { bases: [[15,50,110],[25,65,130],[10,35,90],[30,70,120]], accents: [[90,210,255],[150,235,255],[70,190,255]] },
+  // Lime / neon green
+  { bases: [[20,90,20],[30,110,25],[15,75,35],[40,100,15]], accents: [[130,255,60],[180,240,50],[100,255,140]] },
+];
+
+function generateBackground(seedStr, cfg) {
+  const rng = mulberry32(hashString(String(seedStr)));
+  const palette = palettes[Math.floor(rng() * palettes.length)];
+
+  const gradients = [];
+  const numGrad = cfg.count;
+  for (let i = 0; i < numGrad; i++) {
+    const isAccent = i >= palette.bases.length;
+    const colors = isAccent ? palette.accents : palette.bases;
+    const c = colors[Math.floor(rng() * colors.length)];
+    const baseOpacity = isAccent ? 0.5 + rng() * 0.35 : 0.6 + rng() * 0.4;
+    const opacity = Math.min(1, baseOpacity * cfg.opacity);
+    const shape = rng() > 0.4 ? 'ellipse' : 'circle';
+    const sW = Math.floor((40 + rng() * 60) * cfg.size);
+    const sH = Math.floor((30 + rng() * 50) * cfg.size);
+    const pX = Math.floor(rng() * 100);
+    const pY = Math.floor(rng() * 100);
+    const spread = cfg.spread;
+    if (shape === 'ellipse') {
+      gradients.push(`radial-gradient(ellipse ${sW}% ${sH}% at ${pX}% ${pY}%, rgba(${c},${opacity.toFixed(2)}) 0%, transparent ${spread}%)`);
+    } else {
+      gradients.push(`radial-gradient(circle at ${pX}% ${pY}%, rgba(${c},${opacity.toFixed(2)}) 0%, transparent ${spread}%)`);
+    }
+  }
+
+  const streaks = [];
+  const numStreaks = 1 + Math.floor(rng() * 3);
+  for (let i = 0; i < numStreaks; i++) {
+    streaks.push({
+      angle: -60 + Math.floor(rng() * 120),
+      w: 150 + Math.floor(rng() * 250),
+      h: 400 + Math.floor(rng() * 500),
+      top: -200 + Math.floor(rng() * 600),
+      left: -100 + Math.floor(rng() * 800),
+      alpha: 0.05 + rng() * 0.1,
+    });
+  }
+
+  return { gradients, streaks };
+}
+
+function renderPoster(data, seed, cfg) {
+  const bg = generateBackground(seed, cfg);
+
+  // Background
+  document.getElementById('bgGrad').style.background = bg.gradients.join(', ');
+
+  // Streaks
+  const sc = document.getElementById('streaksContainer');
+  sc.innerHTML = '';
+  bg.streaks.forEach(s => {
+    const el = document.createElement('div');
+    el.className = 'streak';
+    el.style.cssText = `width:${s.w}px;height:${s.h}px;top:${s.top}px;left:${s.left}px;transform:rotate(${s.angle}deg);background:linear-gradient(135deg,transparent,rgba(255,255,255,${s.alpha}),transparent);`;
+    sc.appendChild(el);
+  });
+
+  // Panel content
+  const panel = document.getElementById('panel');
+  let html = `
+    <div class="header">
+      <div class="college">${esc(data.header || '')}</div>
+      <div class="title">${esc(data.title || '')}</div>
+      <div class="subtitle">${esc(data.subtitle || '')}</div>
+    </div>
+    <div class="films">
+  `;
+
+  (data.films || []).forEach(f => {
+    html += `
+      <div class="film">
+        <div class="film-date">${esc(f.date)}</div>
+        <div class="film-details">
+          <div class="film-name">${esc(f.name)}</div>
+          <div class="film-director">${esc(f.director)}</div>
+        </div>
+      </div>
+    `;
+  });
+
+  html += `
+    </div>
+    <div class="sep"></div>
+    <div class="footer-line">${esc(data.time || '')}</div>
+    <div class="footer-line">${esc(data.venue || '')}</div>
+  `;
+
+  panel.innerHTML = html;
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// Init
+const seedInput = document.getElementById('seedInput');
+const editor = document.getElementById('editor');
+
+function getFormData() {
+  return {
+    header:   document.getElementById('f-header').value,
+    title:    document.getElementById('f-title').value,
+    subtitle: document.getElementById('f-subtitle').value,
+    time:     document.getElementById('f-time').value,
+    venue:    document.getElementById('f-venue').value,
+    films: [0,1,2,3].map(i => ({
+      date:     document.getElementById(`f-date-${i}`).value,
+      name:     document.getElementById(`f-name-${i}`).value,
+      director: document.getElementById(`f-dir-${i}`).value,
+    })),
+  };
+}
+
+function getBgConfig() {
+  return {
+    count:   parseInt(document.getElementById('ctrl-count').value),
+    size:    document.getElementById('ctrl-size').value / 100,
+    spread:  parseInt(document.getElementById('ctrl-spread').value),
+    opacity: document.getElementById('ctrl-opacity').value / 100,
+  };
+}
+
+let renderTimer = null;
+
+function capturePreview() {
+  const poster = document.getElementById('poster');
+  const img = document.getElementById('previewImg');
+  img.classList.add('loading');
+  html2canvas(poster, { scale: 1, backgroundColor: '#151518', useCORS: true, logging: false })
+    .then(canvas => {
+      img.src = canvas.toDataURL('image/jpeg', 0.92);
+      img.classList.remove('loading');
+    });
+}
+
+const STATE_KEY = 'filmClubPoster';
+
+function getFullState() {
+  return {
+    form: getFormData(),
+    seed: seedInput.value,
+    sliders: {
+      count:   document.getElementById('ctrl-count').value,
+      size:    document.getElementById('ctrl-size').value,
+      spread:  document.getElementById('ctrl-spread').value,
+      opacity: document.getElementById('ctrl-opacity').value,
+    }
+  };
+}
+
+function applyState(state) {
+  if (!state) return;
+  if (state.seed != null) seedInput.value = state.seed;
+
+  const f = state.form || {};
+  const fieldMap = { header: 'f-header', title: 'f-title', subtitle: 'f-subtitle', time: 'f-time', venue: 'f-venue' };
+  for (const [key, id] of Object.entries(fieldMap)) {
+    if (f[key] != null) document.getElementById(id).value = f[key];
+  }
+  (f.films || []).forEach((film, i) => {
+    if (film.date != null)     document.getElementById(`f-date-${i}`).value = film.date;
+    if (film.name != null)     document.getElementById(`f-name-${i}`).value = film.name;
+    if (film.director != null) document.getElementById(`f-dir-${i}`).value = film.director;
+  });
+
+  const s = state.sliders || {};
+  ['count', 'size', 'spread', 'opacity'].forEach(key => {
+    if (s[key] == null) return;
+    const input = document.getElementById(`ctrl-${key}`);
+    const valEl = document.getElementById(`ctrl-${key}-val`);
+    input.value = s[key];
+    valEl.textContent = key === 'count' ? s[key] : s[key] + '%';
+  });
+}
+
+function saveState() {
+  localStorage.setItem(STATE_KEY, JSON.stringify(getFullState()));
+}
+
+function loadState() {
+  let state;
+  try { state = JSON.parse(localStorage.getItem(STATE_KEY)); } catch(e) {}
+  applyState(state);
+}
+
+function generate() {
+  renderPoster(getFormData(), seedInput.value, getBgConfig());
+  saveState();
+  if (renderTimer) clearTimeout(renderTimer);
+  renderTimer = setTimeout(capturePreview, 250);
+}
+
+// Auto-fill dates 2–4 when date 1 changes
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+document.getElementById('f-date-0').addEventListener('input', function() {
+  const parts = this.value.trim().split(/\s+/);
+  if (parts.length < 2) return;
+  const day = parseInt(parts[0]);
+  const monthIdx = MONTHS.findIndex(m => m.toLowerCase() === parts[1].toLowerCase().slice(0, 3));
+  if (isNaN(day) || monthIdx === -1) return;
+  const base = new Date(new Date().getFullYear(), monthIdx, day);
+  for (let i = 1; i <= 3; i++) {
+    const d = new Date(base.getTime() + i * 7 * 86400000);
+    document.getElementById(`f-date-${i}`).value = `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  }
+});
+
+// Live update as you type
+editor.addEventListener('input', generate);
+
+document.getElementById('generateBtn').addEventListener('click', generate);
+
+document.getElementById('randomBtn').addEventListener('click', () => {
+  seedInput.value = Math.floor(Math.random() * 99999);
+  generate();
+});
+
+document.getElementById('toggleBtn').addEventListener('click', function() {
+  editor.classList.toggle('hidden');
+  this.textContent = editor.classList.contains('hidden') ? 'Show Form' : 'Hide Form';
+});
+
+document.getElementById('printBtn').addEventListener('click', () => {
+  const poster = document.getElementById('poster');
+  const btn = document.getElementById('printBtn');
+  btn.textContent = 'Rendering…';
+  btn.disabled = true;
+  // Scale to match A5 at ~200dpi: A5 is 148×210mm; poster DOM is 700×950px
+  html2canvas(poster, { scale: 2.5, backgroundColor: '#151518', useCORS: true, logging: false })
+    .then(canvas => {
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const { jsPDF } = window.jspdf;
+      // A4 landscape = 297×210mm; two A5 (148.5×210mm each) fill it exactly
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const halfW = 297 / 2; // 148.5mm
+      pdf.addImage(imgData, 'JPEG', 0,      0, halfW, 210);
+      pdf.addImage(imgData, 'JPEG', halfW,  0, halfW, 210);
+      // Thin cut guide between the two posters
+      pdf.setDrawColor(180, 180, 180);
+      pdf.setLineWidth(0.15);
+      pdf.line(halfW, 0, halfW, 210);
+      pdf.save('film-club-poster.pdf');
+    })
+    .finally(() => {
+      btn.textContent = 'Print PDF';
+      btn.disabled = false;
+    });
+});
+
+function embedSeedExif(dataUrl) {
+  const exifObj = {
+    '0th': { [piexif.ImageIFD.Software]: 'film-club generator' },
+    Exif: { [piexif.ExifIFD.UserComment]: `seed=${seedInput.value}` }
+  };
+  return piexif.insert(piexif.dump(exifObj), dataUrl);
+}
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const poster = document.getElementById('poster');
+  html2canvas(poster, { scale: 3, backgroundColor: '#151518', useCORS: true, logging: false }).then(canvas => {
+    const dataUrl = embedSeedExif(canvas.toDataURL('image/jpeg', 0.95));
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = 'schedule.jpeg';
+    a.click();
+  });
+});
+
+document.getElementById('saveJsonBtn').addEventListener('click', () => {
+  const state = getFullState();
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const slug = (state.form.subtitle || 'poster').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  a.download = `film-club-${slug}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('loadJsonBtn').addEventListener('click', () => {
+  document.getElementById('loadJsonInput').click();
+});
+
+document.getElementById('loadJsonInput').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      applyState(JSON.parse(e.target.result));
+      generate();
+    } catch(err) {
+      alert('Could not load file — make sure it\'s a valid poster JSON.');
+    }
+    this.value = '';
+  };
+  reader.readAsText(file);
+});
+
+// Blob control sliders
+['count', 'size', 'spread', 'opacity'].forEach(key => {
+  const input = document.getElementById(`ctrl-${key}`);
+  const valEl = document.getElementById(`ctrl-${key}-val`);
+  input.addEventListener('input', () => {
+    valEl.textContent = key === 'count' ? input.value : input.value + '%';
+    generate();
+  });
+});
+
+// Restore saved state then render
+loadState();
+generate();
+</script>
+
+</body>
+</html>
