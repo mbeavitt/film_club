@@ -194,114 +194,17 @@
     width: 700px;
     pointer-events: none;
   }
+  /* Poster capture box — fixed size so JPEG/PDF export stays consistent.
+     Everything INSIDE the poster is styled by the theme (see theme.js). */
   .poster {
     width: 700px;
     min-height: 990px;
     position: relative;
     overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-  .poster .bg-base {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    background: #151518;
-  }
-  .poster .bg-grad {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-  }
-  .poster .streak {
-    position: absolute;
-    z-index: 1;
-  }
-  .poster .panel {
-    position: relative;
-    z-index: 2;
-    margin: 50px 45px;
-    padding: 55px 50px;
-    background: rgba(10,10,15,0.45);
-    border: 1px solid rgba(255,255,255,0.06);
-    backdrop-filter: blur(2px);
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-  }
-  .poster .header { margin-bottom: 50px; }
-  .poster .college {
-    font-size: 14px;
-    font-weight: 300;
-    letter-spacing: 5px;
-    text-transform: uppercase;
-    opacity: 0.75;
-    margin-bottom: 16px;
-  }
-  .poster .title {
-    font-size: 58px;
-    font-weight: 700;
-    letter-spacing: -1px;
-    line-height: 1;
-    margin-bottom: 6px;
-  }
-  .poster .subtitle {
-    font-size: 15px;
-    font-weight: 200;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    opacity: 0.75;
-  }
-  .poster .films {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-evenly;
-    flex: 1;
-  }
-  .poster .film {
-    display: flex;
-    align-items: baseline;
-    gap: 24px;
-  }
-  .poster .film-date {
-    font-size: 21px;
-    font-weight: 300;
-    letter-spacing: 1px;
-    opacity: 0.7;
-    white-space: nowrap;
-    min-width: 100px;
-  }
-  .poster .film-details {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .poster .film-name {
-    font-size: 44px;
-    font-weight: 600;
-    letter-spacing: -0.3px;
-    line-height: 0.92;
-  }
-  .poster .film-director {
-    font-size: 22px;
-    font-weight: 200;
-    opacity: 0.75;
-  }
-  .poster .sep {
-    width: 30px;
-    height: 1px;
-    background: rgba(255,255,255,0.2);
-    margin: 20px 0;
-  }
-  .poster .footer-line {
-    font-size: 20px;
-    font-weight: 300;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    opacity: 0.7;
-    line-height: 2;
   }
 </style>
+<!-- Poster look is injected here from the active theme (theme.js) -->
+<style id="theme-css"></style>
 </head>
 <body>
 
@@ -387,14 +290,10 @@
   </div>
 </div>
 
-<!-- Poster rendered off-screen; captured by html2canvas for the live preview -->
+<!-- Poster rendered off-screen; captured by html2canvas for the live preview.
+     Its contents are drawn by the active theme (theme.js). -->
 <div class="poster-offscreen">
-  <div class="poster" id="poster">
-    <div class="bg-base"></div>
-    <div class="bg-grad" id="bgGrad"></div>
-    <div id="streaksContainer"></div>
-    <div class="panel" id="panel"></div>
-  </div>
+  <div class="poster" id="poster"></div>
 </div>
 
 <!-- html2canvas for export -->
@@ -403,6 +302,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <!-- piexifjs for EXIF embedding -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/piexifjs/1.0.6/piexif.min.js"></script>
+<!-- The poster's look. Swap this file to restyle the poster. -->
+<script src="theme.js"></script>
 
 <script>
 // Seeded PRNG (mulberry32)
@@ -423,119 +324,37 @@ function hashString(str) {
   return Math.abs(hash);
 }
 
-const palettes = [
-  // Electric indigo / cyan
-  { bases: [[30,15,110],[15,25,140],[50,10,90],[20,40,120]], accents: [[80,180,255],[160,80,255],[40,220,200]] },
-  // Teal / emerald
-  { bases: [[10,90,80],[15,110,90],[20,70,100],[10,80,120]], accents: [[30,240,190],[20,255,160],[60,210,230]] },
-  // Crimson / hot orange
-  { bases: [[120,15,30],[100,25,15],[140,40,20],[90,10,50]], accents: [[255,70,50],[230,130,30],[255,40,110]] },
-  // Cobalt / violet
-  { bases: [[10,20,130],[20,30,150],[30,10,100],[15,50,140]], accents: [[70,130,255],[140,70,255],[50,170,255]] },
-  // Magenta / electric pink
-  { bases: [[100,10,100],[120,20,70],[70,10,130],[90,5,110]], accents: [[255,70,230],[210,50,255],[255,100,190]] },
-  // Amber / gold
-  { bases: [[130,70,10],[110,55,20],[150,80,10],[100,65,5]], accents: [[255,210,30],[230,170,50],[255,190,20]] },
-  // Arctic blue / ice
-  { bases: [[15,50,110],[25,65,130],[10,35,90],[30,70,120]], accents: [[90,210,255],[150,235,255],[70,190,255]] },
-  // Lime / neon green
-  { bases: [[20,90,20],[30,110,25],[15,75,35],[40,100,15]], accents: [[130,255,60],[180,240,50],[100,255,140]] },
-];
-
-function generateBackground(seedStr, cfg) {
-  const rng = mulberry32(hashString(String(seedStr)));
-  const palette = palettes[Math.floor(rng() * palettes.length)];
-
-  const gradients = [];
-  const numGrad = cfg.count;
-  for (let i = 0; i < numGrad; i++) {
-    const isAccent = i >= palette.bases.length;
-    const colors = isAccent ? palette.accents : palette.bases;
-    const c = colors[Math.floor(rng() * colors.length)];
-    const baseOpacity = isAccent ? 0.5 + rng() * 0.35 : 0.6 + rng() * 0.4;
-    const opacity = Math.min(1, baseOpacity * cfg.opacity);
-    const shape = rng() > 0.4 ? 'ellipse' : 'circle';
-    const sW = Math.floor((40 + rng() * 60) * cfg.size);
-    const sH = Math.floor((30 + rng() * 50) * cfg.size);
-    const pX = Math.floor(rng() * 100);
-    const pY = Math.floor(rng() * 100);
-    const spread = cfg.spread;
-    if (shape === 'ellipse') {
-      gradients.push(`radial-gradient(ellipse ${sW}% ${sH}% at ${pX}% ${pY}%, rgba(${c},${opacity.toFixed(2)}) 0%, transparent ${spread}%)`);
-    } else {
-      gradients.push(`radial-gradient(circle at ${pX}% ${pY}%, rgba(${c},${opacity.toFixed(2)}) 0%, transparent ${spread}%)`);
-    }
-  }
-
-  const streaks = [];
-  const numStreaks = 1 + Math.floor(rng() * 3);
-  for (let i = 0; i < numStreaks; i++) {
-    streaks.push({
-      angle: -60 + Math.floor(rng() * 120),
-      w: 150 + Math.floor(rng() * 250),
-      h: 400 + Math.floor(rng() * 500),
-      top: -200 + Math.floor(rng() * 600),
-      left: -100 + Math.floor(rng() * 800),
-      alpha: 0.05 + rng() * 0.1,
-    });
-  }
-
-  return { gradients, streaks };
-}
-
-function renderPoster(data, seed, cfg) {
-  const bg = generateBackground(seed, cfg);
-
-  // Background
-  document.getElementById('bgGrad').style.background = bg.gradients.join(', ');
-
-  // Streaks
-  const sc = document.getElementById('streaksContainer');
-  sc.innerHTML = '';
-  bg.streaks.forEach(s => {
-    const el = document.createElement('div');
-    el.className = 'streak';
-    el.style.cssText = `width:${s.w}px;height:${s.h}px;top:${s.top}px;left:${s.left}px;transform:rotate(${s.angle}deg);background:linear-gradient(135deg,transparent,rgba(255,255,255,${s.alpha}),transparent);`;
-    sc.appendChild(el);
-  });
-
-  // Panel content
-  const panel = document.getElementById('panel');
-  let html = `
-    <div class="header">
-      <div class="college">${esc(data.header || '')}</div>
-      <div class="title">${esc(data.title || '')}</div>
-      <div class="subtitle">${esc(data.subtitle || '')}</div>
-    </div>
-    <div class="films">
-  `;
-
-  (data.films || []).forEach(f => {
-    html += `
-      <div class="film">
-        <div class="film-date">${esc(f.date)}</div>
-        <div class="film-details">
-          <div class="film-name">${esc(f.name)}</div>
-          <div class="film-director">${esc(f.director)}</div>
-        </div>
-      </div>
-    `;
-  });
-
-  html += `
-    </div>
-    <div class="sep"></div>
-    <div class="footer-line">${esc(data.time || '')}</div>
-    <div class="footer-line">${esc(data.venue || '')}</div>
-  `;
-
-  panel.innerHTML = html;
-}
-
 function esc(s) {
   const d = document.createElement('div');
   d.textContent = s;
   return d.innerHTML;
+}
+
+// The active poster look, loaded from theme.js. To restyle the poster, edit or
+// swap that file — nothing below needs to change.
+const theme = window.FilmClubTheme;
+if (!theme) {
+  alert('Could not load the poster theme (theme.js). Make sure it sits next to index.html.');
+}
+
+// Inject the theme's CSS and fonts.
+document.getElementById('theme-css').textContent = theme ? (theme.css || '') : '';
+(theme && theme.fonts || []).forEach(href => {
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = href;
+  document.head.appendChild(link);
+});
+
+// Solid colour behind the poster, used by html2canvas so exported edges match.
+const posterBg = (theme && theme.bgColor) || '#151518';
+
+// Draw the poster by handing the data + settings to the theme.
+function renderPoster(data, seed, cfg) {
+  theme.render(document.getElementById('poster'), data, seed, cfg, {
+    rng: seedStr => mulberry32(hashString(String(seedStr))),
+    esc,
+  });
 }
 
 // Init
@@ -572,7 +391,7 @@ function capturePreview() {
   const poster = document.getElementById('poster');
   const img = document.getElementById('previewImg');
   img.classList.add('loading');
-  html2canvas(poster, { scale: 1, backgroundColor: '#151518', useCORS: true, logging: false })
+  html2canvas(poster, { scale: 1, backgroundColor: posterBg, useCORS: true, logging: false })
     .then(canvas => {
       img.src = canvas.toDataURL('image/jpeg', 0.92);
       img.classList.remove('loading');
@@ -706,7 +525,7 @@ document.getElementById('printBtn').addEventListener('click', () => {
   btn.textContent = 'Rendering…';
   btn.disabled = true;
   // Scale to match A5 at ~200dpi: A5 is 148×210mm; poster DOM is 700×950px
-  html2canvas(poster, { scale: 2.5, backgroundColor: '#151518', useCORS: true, logging: false })
+  html2canvas(poster, { scale: 2.5, backgroundColor: posterBg, useCORS: true, logging: false })
     .then(canvas => {
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
       const { jsPDF } = window.jspdf;
@@ -737,7 +556,7 @@ function embedSeedExif(dataUrl) {
 
 document.getElementById('exportBtn').addEventListener('click', () => {
   const poster = document.getElementById('poster');
-  html2canvas(poster, { scale: 3, backgroundColor: '#151518', useCORS: true, logging: false }).then(canvas => {
+  html2canvas(poster, { scale: 3, backgroundColor: posterBg, useCORS: true, logging: false }).then(canvas => {
     const dataUrl = embedSeedExif(canvas.toDataURL('image/jpeg', 0.95));
     const a = document.createElement('a');
     a.href = dataUrl;
