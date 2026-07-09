@@ -398,8 +398,6 @@ function capturePreview() {
     });
 }
 
-const STATE_KEY = 'filmClubPoster';
-
 function getFullState() {
   return {
     form: getFormData(),
@@ -438,10 +436,6 @@ function applyState(state) {
   });
 }
 
-function saveState() {
-  localStorage.setItem(STATE_KEY, JSON.stringify(getFullState()));
-}
-
 // --- Smart defaults for a fresh browser (no saved poster yet) ---
 
 // Cambridge term (or Summer) a date falls in. Month-based so it never needs
@@ -475,16 +469,9 @@ function applyDefaults() {
   dateField.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-function loadState() {
-  let state = null;
-  try { state = JSON.parse(localStorage.getItem(STATE_KEY)); } catch(e) {}
-  if (state) applyState(state);
-  else applyDefaults();
-}
 
 function generate() {
   renderPoster(getFormData(), seedInput.value, getBgConfig());
-  saveState();
   if (renderTimer) clearTimeout(renderTimer);
   renderTimer = setTimeout(capturePreview, 250);
 }
@@ -607,8 +594,8 @@ document.getElementById('loadJsonInput').addEventListener('change', function() {
   });
 });
 
-// Restore saved state then render
-loadState();
+// Start from a blank slate with smart defaults each time
+applyDefaults();
 generate();
 </script>
 
