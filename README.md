@@ -19,6 +19,6 @@ You can make a poster using our default template using this web tool:
 
 ### For whoever maintains this
 
-The whole app is a single self-contained file, [`index.html`](index.html). It's hosted for free on GitHub Pages from the `main` branch. To change anything, edit `index.html`, commit, and push - the live site should within a about a minute.
+The whole app is a single self-contained file, [`index.html`](index.html). It's hosted for free on GitHub Pages from the `main` branch. To change anything, edit `index.html`, commit, and push - the live site should update within a about a minute.
 
 `past_posters/` holds previously generated schedules for reference :)
